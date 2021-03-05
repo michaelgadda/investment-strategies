@@ -31,28 +31,49 @@ y.dtypes
 
 stock_actions = None
 historical_data = None
-dividend_list = [0]*10000
-split_list = [0]*10000
+dividend_list = [0]*len(stock_list.index)
+split_list = [0]*len(stock_list.index)
+one_year_change_list = [0]*len(stock_list.index)
+one_year_date = [0] * len(stock_list.index)
+one_year_price = [0] * len(stock_list.index)
 for idx, symbol in enumerate(stock_list['Symbol']): 
-    if(idx < 1):
+    if(idx < len(stock_list.index)):
         ticker = yf.Ticker(symbol)
-        stock_actions = ticker.actions
-        dividend_avg = stock_actions['Dividends'].mean()
-        splits_avg = stock_actions['Stock Splits'].mean()
-        dividend_list[idx] = dividend_avg
-        split_list[idx] = splits_avg
+        print(ticker)
+        try:
+            stock_actions = ticker.actions
+            dividend_avg = stock_actions['Dividends'].mean()
+            splits_avg = stock_actions['Stock Splits'].mean()
+            dividend_list[idx] = dividend_avg
+            split_list[idx] = splits_avg
+        except: 
+            dividend_list[idx] = -1
+            split_list[idx] = -1
+            print(f"no available dividend and split data for {ticker}")
         historical_data = ticker.history(period = 'MAX', interval = '1mo')
-        #print(historical_data)
+        historical_data.dropna(axis = 0, how= 'all')
         open_price =  historical_data['Open']
         close_price = historical_data['Close']
         mlist = list(historical_data)
-        #print(historical_data.index[len(open_price)-12])
-        #print(open_price[len(open_price)-12])
-        one_year_change = (open_price[len(open_price)-12]-close_price[len(close_price)-1])/open_price[len(close_price)-1]
-        #print(one_year_change)
+       
+        if len(open_price) >= 17: 
+            one_year_change = (close_price[len(close_price)-1]- open_price[len(open_price)-18])/open_price[len(close_price)-1]
+            one_year_change_list[idx] = one_year_change
+            date[idx] = historical_data.index[len(close_price)-18]
+            one_year_price[idx] = open_price[len(open_price)-18]
+        else:
+            one_year_change = (close_price[len(close_price)-1]- open_price[0])/open_price[len(close_price)-1]
+            one_year_change_list[idx] = one_year_change
+            one_year_price[idx] = open_price[0]
+    
 
+stock_list['1 Year % Change'] = one_year_change_list
+stock_list['Average Dividend'] = dividend_list
+stock_list['Stock Splits'] = splits_avg
+stock_list['1 Year Date'] = date
+stock_list['1 Year Price'] = one_year_price
 
-
+stock_list.to_csv('test_stock_list.csv')
 
 
 #import mutual fund information from vanguard
